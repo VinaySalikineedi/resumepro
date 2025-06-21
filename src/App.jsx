@@ -1,6 +1,40 @@
 import React, { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
+import { TemplateOnePDF, TemplateTwoPDF, TemplateThreePDF, TemplateFourPDF, TemplateFivePDF, TemplateSixPDF, TemplateSevenPDF, TemplateEightPDF, TemplateNinePDF, TemplateTenPDF } from './App_react-pdf';
+// --- Helper for Dynamic Font Sizing for Name ---
+const getFontSizeForName = (name) => {
+    if (!name) return 'text-4xl'; // Default size if no name
+    const len = name.length;
+    if (len > 30) return 'text-2xl'; // For very long names
+    if (len > 20) return 'text-3xl'; // For long names
+    return 'text-4xl'; // Default size for average names
+};
+
+// A slightly larger range for templates that initially use text-5xl
+const getLargerFontSizeForName = (name) => {
+    if (!name) return 'text-5xl';
+    const len = name.length;
+    if (len > 30) return 'text-3xl'; // Scale down more for very long names
+    if (len > 20) return 'text-4xl'; // Scale down for long names
+    return 'text-5xl'; // Default large size
+};
+
 
 // --- Template Definitions (New Components for Each Template) ---
+// At top-level inside App.jsx:
+const templateOptions = [
+  { value: 0, label: 'Modern Professional' },
+  { value: 1, label: 'Chronological' },
+  { value: 2, label: 'Functional' },
+  { value: 3, label: 'Minimalist Elegant' },
+  { value: 4, label: 'Executive Two-Column' },
+  { value: 5, label: 'Academic CV' },
+  { value: 6, label: 'Creative Modern' },
+  { value: 7, label: 'College Graduate' },
+  { value: 8, label: 'Simple Modern' },
+  { value: 9, label: 'Highlighted Sections' }
+];
+const accentOptions = ['blue', 'purple', 'green', 'red', 'orange', 'teal', 'pink', 'indigo', 'lime', 'amber'];
 
 // Base styling classes for resume elements, dynamically applied
 const getAccentClasses = (accentColor) => {
@@ -20,30 +54,29 @@ const getAccentClasses = (accentColor) => {
 };
 
 // Reusable Resume Section for Preview (updated to accept accent classes)
-const ResumeSectionDisplay = ({ title, children, accentTextColorClass, accentBorderColorClass }) => (
-  <div className={`mb-4 pb-2 border-b ${accentBorderColorClass}`}>
-    <h3 className={`text-xl font-bold mb-2 ${accentTextColorClass}`}>{title}</h3>
+const ResumeSectionDisplay = ({ title, children, accentTextColorClass, accentBorderColorClass, sectionId }) => (
+  // Added sectionId for specific styling if needed for certain templates
+  <div id={sectionId} className={`mb-4 pb-2 border-b ${accentBorderColorClass}`}>
+    <h3 className={`text-xl font-bold mb-2 ${accentTextColorClass} uppercase`}>{title}</h3>
     {children}
   </div>
 );
 
-// --- 10 NEW TEMPLATE COMPONENTS ---
+// --- 10 NEW TEMPLATE COMPONENTS (REDESIGNED) ---
 
-// Template 1: Modern (Single-column with bold headings, simple layout)
-const ModernTemplate = ({ resumeData, accentColor }) => {
+// Template 1: Modern Professional (Clean, balanced single column, clear hierarchy)
+const ModernProfessionalTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
     return (
         <div className="p-6 font-sans leading-relaxed text-gray-900">
             {resumeData.personal.name && (
                 <div className="text-center mb-6">
-                    <h2 className={`text-4xl font-bold mb-1 ${nameColor}`}>{resumeData.personal.name}</h2>
-                    <p className="text-gray-600 text-sm">
-                        {resumeData.personal.email && <span>{resumeData.personal.email} | </span>}
+                    <h2 className={`${nameFontSizeClass} font-bold mb-1 ${nameColor}`}>{resumeData.personal.name}</h2>
+                    <p className="text-gray-600 text-sm flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
                         {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
-                    </p>
-                    <p className="text-gray-600 text-sm">
                         {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
-                        {resumeData.personal.linkedin && resumeData.personal.portfolio && ' | '}
                         {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
                     </p>
                 </div>
@@ -57,9 +90,11 @@ const ModernTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.experience.map((exp, index) => exp.title && (
                         <div key={index} className="mb-3">
-                            <h4 className="font-semibold">{exp.title} at {exp.company}</h4>
-                            <p className="text-xs text-gray-700 mb-1">{exp.dates}</p>
-                            <ul className="list-disc list-inside text-sm">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{exp.title} at {exp.company}</h4>
+                                <p className="text-xs text-gray-700">{exp.dates}</p>
+                            </div>
+                            <ul className="list-disc list-inside text-sm mt-1">
                                 {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
                             </ul>
                         </div>
@@ -70,8 +105,11 @@ const ModernTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.education.map((edu, index) => edu.institution && (
                         <div key={index} className="mb-2">
-                            <h4 className="font-semibold">{edu.degree}</h4>
-                            <p className="text-xs text-gray-700">{edu.institution} - {edu.dates}</p>
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{edu.degree}</h4>
+                                <p className="text-xs text-gray-700">{edu.dates}</p>
+                            </div>
+                            <p className="text-sm text-gray-700">{edu.institution}</p>
                         </div>
                     ))}
                 </ResumeSectionDisplay>
@@ -85,7 +123,7 @@ const ModernTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.projects.map((proj, index) => proj.title && (
                         <div key={index} className="mb-3">
-                            <h4 className="font-semibold">{proj.title}</h4>
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
                             {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
                             {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
                             <p className="text-sm">{proj.description}</p>
@@ -97,7 +135,7 @@ const ModernTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Certifications" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.certifications.map((cert, index) => cert.name && (
                         <div key={index} className="mb-2">
-                            <h4 className="font-semibold">{cert.name}</h4>
+                            <h4 className="font-semibold text-base">{cert.name}</h4>
                             <p className="text-xs text-gray-700">{cert.issuer} - {cert.date}</p>
                         </div>
                     ))}
@@ -107,7 +145,7 @@ const ModernTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Awards/Honors" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.awards.map((award, index) => award.name && (
                         <div key={index} className="mb-2">
-                            <h4 className="font-semibold">{award.name}</h4>
+                            <h4 className="font-semibold text-base">{award.name}</h4>
                             <p className="text-xs text-gray-700">{award.date}</p>
                             <p className="text-sm">{award.description}</p>
                         </div>
@@ -123,26 +161,127 @@ const ModernTemplate = ({ resumeData, accentColor }) => {
     );
 };
 
-// Template 2: Classic (Two-column, clean, traditional)
-const ClassicTemplate = ({ resumeData, accentColor }) => {
+// Template 2: Chronological (Traditional, clear date emphasis)
+const ChronologicalTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
     return (
-        <div className="p-8 font-serif grid grid-cols-3 gap-6 text-gray-900">
-            <div className="col-span-3 text-center mb-6">
-                <h1 className={`text-4xl font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
-                <p className="text-gray-700 text-sm">
-                    {resumeData.personal.email} | {resumeData.personal.phone} | {resumeData.personal.linkedin}
-                </p>
-            </div>
+        <div className="p-8 font-serif text-gray-900">
+            {resumeData.personal.name && (
+                <div className="text-center mb-6 border-b pb-4 border-gray-300">
+                    <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                    <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                        {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                        {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
+                    </p>
+                </div>
+            )}
+            {resumeData.personal.summary && (
+                <ResumeSectionDisplay title="Profile Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-sm">{resumeData.personal.summary}</p>
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.experience.some(exp => exp.title) && (
+                <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.experience.map((exp, index) => exp.title && (
+                        <div key={index} className="mb-4 grid grid-cols-4">
+                            <p className="col-span-1 text-xs text-gray-700 font-medium">{exp.dates}</p>
+                            <div className="col-span-3">
+                                <h4 className="font-semibold text-base">{exp.title}</h4>
+                                <p className="text-sm text-gray-700 mb-1">{exp.company}</p>
+                                <ul className="list-disc list-inside text-sm">
+                                    {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
+                                </ul>
+                            </div>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.education.some(edu => edu.institution) && (
+                <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.education.map((edu, index) => edu.institution && (
+                        <div key={index} className="mb-3 grid grid-cols-4">
+                            <p className="col-span-1 text-xs text-gray-700 font-medium">{edu.dates}</p>
+                            <div className="col-span-3">
+                                <h4 className="font-semibold text-base">{edu.degree}</h4>
+                                <p className="text-sm text-gray-700">{edu.institution}</p>
+                            </div>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.skills && (
+                <ResumeSectionDisplay title="Skills" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-sm">{resumeData.skills}</p>
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.projects.some(proj => proj.title) && (
+                <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.projects.map((proj, index) => proj.title && (
+                        <div key={index} className="mb-3">
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
+                            {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
+                            <p className="text-sm">{proj.description}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.certifications.some(cert => cert.name) && (
+                <ResumeSectionDisplay title="Certifications" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.certifications.map((cert, index) => cert.name && (
+                        <div key={index} className="mb-2">
+                            <h4 className="font-semibold text-base">{cert.name}</h4>
+                            <p className="text-xs text-gray-700">{cert.issuer} - {cert.date}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.awards.some(award => award.name) && (
+                <ResumeSectionDisplay title="Awards/Honors" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.awards.map((award, index) => award.name && (
+                        <div key={index} className="mb-2">
+                            <h4 className="font-semibold text-base">{award.name}</h4>
+                            <p className="text-xs text-gray-700">{award.date}</p>
+                            <p className="text-sm">{award.description}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.languages && (
+                <ResumeSectionDisplay title="Languages" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-sm">{resumeData.languages}</p>
+                </ResumeSectionDisplay>
+            )}
+        </div>
+    );
+};
+
+// Template 3: Functional (Skills-focused, side-column for contact)
+const FunctionalTemplate = ({ resumeData, accentColor }) => {
+    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
+    return (
+        <div className="p-8 font-sans text-gray-900 grid grid-cols-4 gap-6">
             <div className="col-span-1 pr-4 border-r border-gray-300">
-                {resumeData.personal.summary && (
-                    <ResumeSectionDisplay title="Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        <p className="text-sm">{resumeData.personal.summary}</p>
-                    </ResumeSectionDisplay>
+                {resumeData.personal.name && (
+                    <div className="mb-6">
+                        <h2 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h2>
+                        <div className="mt-4 text-sm text-gray-700 space-y-1">
+                            {resumeData.personal.email && <p><span className="font-semibold">Email:</span> {resumeData.personal.email}</p>}
+                            {resumeData.personal.phone && <p><span className="font-semibold">Phone:</span> {resumeData.personal.phone}</p>}
+                            {resumeData.personal.linkedin && <p><span className="font-semibold">LinkedIn:</span> <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{resumeData.personal.linkedin.replace(/(^\w+:|^)\/\//, '')}</a></p>}
+                            {resumeData.personal.portfolio && <p><span className="font-semibold">Portfolio:</span> <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{resumeData.personal.portfolio.replace(/(^\w+:|^)\/\//, '')}</a></p>}
+                        </div>
+                    </div>
                 )}
                 {resumeData.skills && (
                     <ResumeSectionDisplay title="Skills" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        <p className="text-sm">{resumeData.skills}</p>
+                        <ul className="list-disc list-inside text-sm">
+                            {resumeData.skills.split(',').map((skill, i) => skill.trim() && <li key={i}>{skill.trim()}</li>)}
+                        </ul>
                     </ResumeSectionDisplay>
                 )}
                 {resumeData.languages && (
@@ -158,23 +297,42 @@ const ClassicTemplate = ({ resumeData, accentColor }) => {
                     </ResumeSectionDisplay>
                 )}
                  {resumeData.awards.some(award => award.name) && (
-                    <ResumeSectionDisplay title="Awards/Honors" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <ResumeSectionDisplay title="Awards" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                         {resumeData.awards.map((award, index) => award.name && (
-                            <p key={index} className="text-sm">{award.name} ({award.date})</p>
+                            <p key={index} className="text-sm">{award.name}</p>
                         ))}
                     </ResumeSectionDisplay>
                 )}
             </div>
-            <div className="col-span-2 pl-4">
+            <div className="col-span-3 pl-4">
+                {resumeData.personal.summary && (
+                    <ResumeSectionDisplay title="Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        <p className="text-sm">{resumeData.personal.summary}</p>
+                    </ResumeSectionDisplay>
+                )}
                 {resumeData.experience.some(exp => exp.title) && (
                     <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                         {resumeData.experience.map((exp, index) => exp.title && (
-                            <div key={index} className="mb-3">
-                                <h4 className="font-semibold">{exp.title}, {exp.company}</h4>
-                                <p className="text-xs text-gray-700 mb-1">{exp.dates}</p>
-                                <ul className="list-disc list-inside text-sm">
+                            <div key={index} className="mb-4">
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-semibold text-base">{exp.title}, {exp.company}</h4>
+                                    <p className="text-xs text-gray-700">{exp.dates}</p>
+                                </div>
+                                <ul className="list-disc list-inside text-sm mt-1">
                                     {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
                                 </ul>
+                            </div>
+                        ))}
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.projects.some(proj => proj.title) && (
+                    <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        {resumeData.projects.map((proj, index) => proj.title && (
+                            <div key={index} className="mb-4">
+                                <h4 className="font-semibold text-base">{proj.title}</h4>
+                                {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                                {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
+                                <p className="text-sm">{proj.description}</p>
                             </div>
                         ))}
                     </ResumeSectionDisplay>
@@ -182,21 +340,12 @@ const ClassicTemplate = ({ resumeData, accentColor }) => {
                 {resumeData.education.some(edu => edu.institution) && (
                     <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                         {resumeData.education.map((edu, index) => edu.institution && (
-                            <div key={index} className="mb-2">
-                                <h4 className="font-semibold">{edu.degree}, {edu.institution}</h4>
-                                <p className="text-xs text-gray-700">{edu.dates}</p>
-                            </div>
-                        ))}
-                    </ResumeSectionDisplay>
-                )}
-                 {resumeData.projects.some(proj => proj.title) && (
-                    <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        {resumeData.projects.map((proj, index) => proj.title && (
                             <div key={index} className="mb-3">
-                                <h4 className="font-semibold">{proj.title}</h4>
-                                {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
-                                {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
-                                <p className="text-sm">{proj.description}</p>
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-semibold text-base">{edu.degree}</h4>
+                                    <p className="text-xs text-gray-700">{edu.dates}</p>
+                                </div>
+                                <p className="text-sm text-gray-700">{edu.institution}</p>
                             </div>
                         ))}
                     </ResumeSectionDisplay>
@@ -206,31 +355,37 @@ const ClassicTemplate = ({ resumeData, accentColor }) => {
     );
 };
 
-// Template 3: Professional (Single-column with formal fonts, subtle borders)
-const ProfessionalTemplate = ({ resumeData, accentColor }) => {
+// Template 4: Minimalist Elegant (Clean lines, subtle accents, good whitespace)
+const MinimalistElegantTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getLargerFontSizeForName(resumeData.personal.name); // Uses larger range for this template
     return (
-        <div className="p-8 font-serif text-gray-900">
+        <div className="p-10 font-sans text-gray-900">
             {resumeData.personal.name && (
-                <div className="text-center mb-6 pb-2 border-b border-gray-300">
-                    <h1 className={`text-4xl font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
-                    <p className="text-gray-700 text-sm">
-                        {resumeData.personal.email} | {resumeData.personal.phone} | {resumeData.personal.linkedin} | {resumeData.personal.portfolio}
+                <div className="text-center mb-8 pb-4 border-b border-gray-200">
+                    <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                    <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                        {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                        {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
                     </p>
                 </div>
             )}
             {resumeData.personal.summary && (
-                <ResumeSectionDisplay title="Professional Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                    <p className="text-sm">{resumeData.personal.summary}</p>
+                <ResumeSectionDisplay title="Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-base text-center">{resumeData.personal.summary}</p>
                 </ResumeSectionDisplay>
             )}
             {resumeData.experience.some(exp => exp.title) && (
                 <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.experience.map((exp, index) => exp.title && (
-                        <div key={index} className="mb-3">
-                            <h4 className="font-bold">{exp.title} <span className="font-normal text-gray-700">| {exp.company}</span></h4>
-                            <p className="text-xs text-gray-700 mb-1">{exp.dates}</p>
-                            <ul className="list-disc list-inside text-sm">
+                        <div key={index} className="mb-4">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{exp.title} at {exp.company}</h4>
+                                <p className="text-xs text-gray-700">{exp.dates}</p>
+                            </div>
+                            <ul className="list-disc list-inside text-sm mt-1">
                                 {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
                             </ul>
                         </div>
@@ -240,9 +395,12 @@ const ProfessionalTemplate = ({ resumeData, accentColor }) => {
             {resumeData.education.some(edu => edu.institution) && (
                 <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.education.map((edu, index) => edu.institution && (
-                        <div key={index} className="mb-2">
-                            <h4 className="font-bold">{edu.degree}, {edu.institution}</h4>
-                            <p className="text-xs text-gray-700">{edu.dates}</p>
+                        <div key={index} className="mb-3">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{edu.degree}</h4>
+                                <p className="text-xs text-gray-700">{edu.dates}</p>
+                            </div>
+                            <p className="text-sm text-gray-700">{edu.institution}</p>
                         </div>
                     ))}
                 </ResumeSectionDisplay>
@@ -256,25 +414,186 @@ const ProfessionalTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.projects.map((proj, index) => proj.title && (
                         <div key={index} className="mb-3">
-                            <h4 className="font-bold">{proj.title}</h4>
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
                             {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
-                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Tech: {proj.technologies}</p>}
+                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
                             <p className="text-sm">{proj.description}</p>
                         </div>
                     ))}
                 </ResumeSectionDisplay>
             )}
+        </div>
+    );
+};
+
+// Template 5: Executive Two-Column (Formal, structured, distinct sections)
+const ExecutiveTwoColumnTemplate = ({ resumeData, accentColor }) => {
+    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
+    return (
+        <div className="p-8 font-serif text-gray-900 grid grid-cols-3 gap-8">
+            <div className="col-span-3 text-center mb-6">
+                <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                    {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                    {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                    {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                    {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
+                </p>
+            </div>
+            <div className="col-span-1 border-r border-gray-300 pr-6">
+                {resumeData.personal.summary && (
+                    <ResumeSectionDisplay title="Profile" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        <p className="text-sm">{resumeData.personal.summary}</p>
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.skills && (
+                    <ResumeSectionDisplay title="Key Skills" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        <ul className="list-disc list-inside text-sm">
+                            {resumeData.skills.split(',').map((skill, i) => skill.trim() && <li key={i}>{skill.trim()}</li>)}
+                        </ul>
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.education.some(edu => edu.institution) && (
+                    <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        {resumeData.education.map((edu, index) => edu.institution && (
+                            <div key={index} className="mb-2">
+                                <h4 className="font-semibold text-base">{edu.degree}</h4>
+                                <p className="text-xs text-gray-700">{edu.institution} - {edu.dates}</p>
+                            </div>
+                        ))}
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.languages && (
+                    <ResumeSectionDisplay title="Languages" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        <p className="text-sm">{resumeData.languages}</p>
+                    </ResumeSectionDisplay>
+                )}
+            </div>
+            <div className="col-span-2 pl-6">
+                {resumeData.experience.some(exp => exp.title) && (
+                    <ResumeSectionDisplay title="Professional Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        {resumeData.experience.map((exp, index) => exp.title && (
+                            <div key={index} className="mb-4">
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-semibold text-base">{exp.title} | {exp.company}</h4>
+                                    <p className="text-xs text-gray-700">{exp.dates}</p>
+                                </div>
+                                <ul className="list-disc list-inside text-sm mt-1">
+                                    {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
+                                </ul>
+                            </div>
+                        ))}
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.projects.some(proj => proj.title) && (
+                    <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        {resumeData.projects.map((proj, index) => proj.title && (
+                            <div key={index} className="mb-3">
+                                <h4 className="font-semibold text-base">{proj.title}</h4>
+                                {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                                {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
+                                <p className="text-sm">{proj.description}</p>
+                            </div>
+                        ))}
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.certifications.some(cert => cert.name) && (
+                    <ResumeSectionDisplay title="Certifications" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        {resumeData.certifications.map((cert, index) => cert.name && (
+                            <p key={index} className="text-sm">{cert.name} ({cert.issuer})</p>
+                        ))}
+                    </ResumeSectionDisplay>
+                )}
+                {resumeData.awards.some(award => award.name) && (
+                    <ResumeSectionDisplay title="Awards/Honors" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                        {resumeData.awards.map((award, index) => award.name && (
+                            <p key={index} className="text-sm">{award.name} ({award.date})</p>
+                        ))}
+                    </ResumeSectionDisplay>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Template 6: Academic (Detailed, suited for research/academia)
+const AcademicTemplate = ({ resumeData, accentColor }) => {
+    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
+    return (
+        <div className="p-8 font-serif text-gray-900">
+            {resumeData.personal.name && (
+                <div className="text-center mb-6 pb-4 border-b border-gray-300">
+                    <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                    <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                        {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                        {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
+                    </p>
+                </div>
+            )}
+            {resumeData.education.some(edu => edu.institution) && (
+                <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.education.map((edu, index) => edu.institution && (
+                        <div key={index} className="mb-3">
+                            <h4 className="font-semibold text-lg">{edu.degree}</h4>
+                            <p className="text-sm text-gray-700">{edu.institution}, {edu.dates}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.experience.some(exp => exp.title) && (
+                <ResumeSectionDisplay title="Research/Work Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.experience.map((exp, index) => exp.title && (
+                        <div key={index} className="mb-4">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{exp.title} at {exp.company}</h4>
+                                <p className="text-xs text-gray-700">{exp.dates}</p>
+                            </div>
+                            <ul className="list-disc list-inside text-sm mt-1">
+                                {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
+                            </ul>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.projects.some(proj => proj.title) && (
+                <ResumeSectionDisplay title="Projects / Publications" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.projects.map((proj, index) => proj.title && (
+                        <div key={index} className="mb-3">
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
+                            {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Keywords: {proj.technologies}</p>}
+                            <p className="text-sm">{proj.description}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.skills && (
+                <ResumeSectionDisplay title="Skills" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-sm">{resumeData.skills}</p>
+                </ResumeSectionDisplay>
+            )}
             {resumeData.certifications.some(cert => cert.name) && (
                 <ResumeSectionDisplay title="Certifications" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.certifications.map((cert, index) => cert.name && (
-                        <p key={index} className="text-sm">{cert.name} ({cert.issuer})</p>
+                        <div key={index} className="mb-2">
+                            <h4 className="font-semibold text-base">{cert.name}</h4>
+                            <p className="text-xs text-gray-700">{cert.issuer} - {cert.date}</p>
+                        </div>
                     ))}
                 </ResumeSectionDisplay>
             )}
             {resumeData.awards.some(award => award.name) && (
-                <ResumeSectionDisplay title="Awards/Honors" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                <ResumeSectionDisplay title="Awards/Grants" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.awards.map((award, index) => award.name && (
-                        <p key={index} className="text-sm">{award.name} ({award.date})</p>
+                        <div key={index} className="mb-2">
+                            <h4 className="font-semibold text-base">{award.name}</h4>
+                            <p className="text-xs text-gray-700">{award.date}</p>
+                            <p className="text-sm">{award.description}</p>
+                        </div>
                     ))}
                 </ResumeSectionDisplay>
             )}
@@ -287,21 +606,22 @@ const ProfessionalTemplate = ({ resumeData, accentColor }) => {
     );
 };
 
-// Template 4: Creative (Asymmetrical, vibrant accents, circular skill tags)
-const CreativeTemplate = ({ resumeData, accentColor }) => {
+// Template 7: Creative Modern (Asymmetrical layout, focus on visual appeal)
+const CreativeModernTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getLargerFontSizeForName(resumeData.personal.name); // Uses larger range for this template
     return (
         <div className="p-8 font-sans text-gray-900 grid grid-cols-4 gap-6">
             <div className="col-span-4 text-center pb-6 mb-6 border-b border-gray-300">
-                <h1 className={`text-5xl font-extrabold ${nameColor}`}>{resumeData.personal.name}</h1>
-                <p className="text-gray-700 text-md mt-2">
-                    {resumeData.personal.email} | {resumeData.personal.phone}
-                </p>
-                <div className="flex justify-center gap-4 mt-2 text-sm">
+                <h1 className={`${nameFontSizeClass} font-extrabold ${nameColor}`}>{resumeData.personal.name}</h1>
+                <p className="text-gray-700 text-md mt-2 flex justify-center flex-wrap gap-x-4">
+                    {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                    {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
                     {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
-                    {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
+                    </p>
                 </div>
-            </div>
+            
             <div className="col-span-1 pr-4">
                 {resumeData.personal.summary && (
                     <ResumeSectionDisplay title="Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
@@ -362,7 +682,7 @@ const CreativeTemplate = ({ resumeData, accentColor }) => {
                     <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                         {resumeData.education.map((edu, index) => edu.institution && (
                             <div key={index} className="mb-2">
-                                <h4 className="font-semibold">{edu.degree}, {edu.institution}</h4>
+                                <h4 className="font-semibold text-base">{edu.degree}, {edu.institution}</h4>
                                 <p className="text-xs text-gray-700">{edu.dates}</p>
                             </div>
                         ))}
@@ -380,97 +700,64 @@ const CreativeTemplate = ({ resumeData, accentColor }) => {
     );
 };
 
-// Template 5: Elegant (Ornate typography, centered headings, thin lines)
-const ElegantTemplate = ({ resumeData, accentColor }) => {
+// Template 8: College Graduate (Clean, single column, emphasizes education/projects)
+const CollegeGraduateTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
     return (
-        <div className="p-8 font-serif text-gray-900">
+        <div className="p-8 font-sans text-gray-900">
             {resumeData.personal.name && (
-                <div className="text-center mb-8">
-                    <h1 className={`text-5xl font-light italic ${nameColor} tracking-wide`}>{resumeData.personal.name}</h1>
-                    <div className="h-0.5 w-24 mx-auto mt-4 mb-4" style={{ backgroundColor: getAccentClasses(accentColor).borderColor.split('-')[1] }}></div>
-                    <p className="text-gray-700 text-sm">
-                        {resumeData.personal.email} | {resumeData.personal.phone} | {resumeData.personal.linkedin}
+                <div className="text-center mb-8 pb-4 border-b border-gray-200">
+                    <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                    <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                        {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                        {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
                     </p>
                 </div>
             )}
             {resumeData.personal.summary && (
-                <ResumeSectionDisplay title="Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                    <p className="text-sm text-center italic">{resumeData.personal.summary}</p>
-                </ResumeSectionDisplay>
-            )}
-            {resumeData.experience.some(exp => exp.title) && (
-                <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                    {resumeData.experience.map((exp, index) => exp.title && (
-                        <div key={index} className="mb-3">
-                            <h4 className="font-semibold text-base">{exp.title}, {exp.company}</h4>
-                            <p className="text-xs text-gray-700 mb-1">{exp.dates}</p>
-                            <ul className="list-disc list-inside text-sm">
-                                {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
-                            </ul>
-                        </div>
-                    ))}
+                <ResumeSectionDisplay title="Objective/Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-base">{resumeData.personal.summary}</p>
                 </ResumeSectionDisplay>
             )}
             {resumeData.education.some(edu => edu.institution) && (
                 <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.education.map((edu, index) => edu.institution && (
-                        <div key={index} className="mb-2">
-                            <h4 className="font-semibold text-base">{edu.degree}, {edu.institution}</h4>
-                            <p className="text-xs text-gray-700">{edu.dates}</p>
+                        <div key={index} className="mb-3">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{edu.degree}</h4>
+                                <p className="text-xs text-gray-700">{edu.dates}</p>
+                            </div>
+                            <p className="text-sm text-gray-700">{edu.institution}</p>
                         </div>
                     ))}
                 </ResumeSectionDisplay>
             )}
-            {resumeData.skills && (
-                <ResumeSectionDisplay title="Skills" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                    <p className="text-sm text-center">{resumeData.skills}</p>
+            {resumeData.projects.some(proj => proj.title) && (
+                <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.projects.map((proj, index) => proj.title && (
+                        <div key={index} className="mb-3">
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
+                            {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
+                            <p className="text-sm">{proj.description}</p>
+                        </div>
+                    ))}
                 </ResumeSectionDisplay>
-            )}
-            {resumeData.languages && (
-                <ResumeSectionDisplay title="Languages" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                    <p className="text-sm text-center">{resumeData.languages}</p>
-                </ResumeSectionDisplay>
-            )}
-        </div>
-    );
-};
-
-// Template 6: Minimalist (Ultra-clean, single column, max whitespace)
-const MinimalistTemplate = ({ resumeData, accentColor }) => {
-    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
-    return (
-        <div className="p-10 font-sans text-gray-900">
-            {resumeData.personal.name && (
-                <div className="text-center mb-8">
-                    <h1 className={`text-4xl font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
-                    <p className="text-gray-700 text-sm mt-1">
-                        {resumeData.personal.email} | {resumeData.personal.phone}
-                    </p>
-                </div>
-            )}
-            {resumeData.personal.summary && (
-                <div className="mb-8">
-                    <p className="text-base text-center">{resumeData.personal.summary}</p>
-                </div>
             )}
             {resumeData.experience.some(exp => exp.title) && (
-                <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                <ResumeSectionDisplay title="Relevant Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.experience.map((exp, index) => exp.title && (
                         <div key={index} className="mb-4">
-                            <h4 className="font-semibold text-base">{exp.title}, {exp.company} <span className="float-right text-xs text-gray-600">{exp.dates}</span></h4>
-                            <ul className="list-none text-sm ml-4">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{exp.title} at {exp.company}</h4>
+                                <p className="text-xs text-gray-700">{exp.dates}</p>
+                            </div>
+                            <ul className="list-disc list-inside text-sm mt-1">
                                 {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
                             </ul>
-                        </div>
-                    ))}
-                </ResumeSectionDisplay>
-            )}
-            {resumeData.education.some(edu => edu.institution) && (
-                <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                    {resumeData.education.map((edu, index) => edu.institution && (
-                        <div key={index} className="mb-3">
-                            <h4 className="font-semibold text-base">{edu.degree}, {edu.institution} <span className="float-right text-xs text-gray-600">{edu.dates}</span></h4>
                         </div>
                     ))}
                 </ResumeSectionDisplay>
@@ -480,122 +767,50 @@ const MinimalistTemplate = ({ resumeData, accentColor }) => {
                     <p className="text-sm">{resumeData.skills}</p>
                 </ResumeSectionDisplay>
             )}
-        </div>
-    );
-};
-
-// Template 7: Corporate (Two-column, formal, structured)
-const CorporateTemplate = ({ resumeData, accentColor }) => {
-    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
-    return (
-        <div className="p-8 font-sans text-gray-900 grid grid-cols-4 gap-8">
-            <div className="col-span-4 text-center mb-6">
-                <h1 className={`text-4xl font-bold ${nameColor} uppercase`}>{resumeData.personal.name}</h1>
-                <p className="text-gray-700 text-sm mt-2">
-                    {resumeData.personal.email} | {resumeData.personal.phone} | {resumeData.personal.linkedin}
-                </p>
-            </div>
-            <div className="col-span-1 border-r border-gray-300 pr-6">
-                {resumeData.personal.summary && (
-                    <ResumeSectionDisplay title="Profile" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        <p className="text-sm">{resumeData.personal.summary}</p>
-                    </ResumeSectionDisplay>
-                )}
-                {resumeData.skills && (
-                    <ResumeSectionDisplay title="Core Competencies" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        <ul className="list-disc list-inside text-sm">
-                            {resumeData.skills.split(',').map((skill, i) => skill.trim() && <li key={i}>{skill.trim()}</li>)}
-                        </ul>
-                    </ResumeSectionDisplay>
-                )}
-                {resumeData.languages && (
-                    <ResumeSectionDisplay title="Languages" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        <p className="text-sm">{resumeData.languages}</p>
-                    </ResumeSectionDisplay>
-                )}
-            </div>
-            <div className="col-span-3 pl-6">
-                {resumeData.experience.some(exp => exp.title) && (
-                    <ResumeSectionDisplay title="Work Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        {resumeData.experience.map((exp, index) => exp.title && (
-                            <div key={index} className="mb-4">
-                                <h4 className="font-semibold text-base">{exp.title} <span className="text-gray-700 font-normal">| {exp.company}</span></h4>
-                                <p className="text-xs text-gray-600 mb-1">{exp.dates}</p>
-                                <ul className="list-disc list-inside text-sm">
-                                    {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
-                                </ul>
-                            </div>
-                        ))}
-                    </ResumeSectionDisplay>
-                )}
-                {resumeData.education.some(edu => edu.institution) && (
-                    <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                        {resumeData.education.map((edu, index) => edu.institution && (
-                            <div key={index} className="mb-2">
-                                <h4 className="font-semibold text-base">{edu.degree}, {edu.institution}</h4>
-                                <p className="text-xs text-gray-700">{edu.dates}</p>
-                            </div>
-                        ))}
-                    </ResumeSectionDisplay>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// Template 8: Bold (Large, bold fonts, gradient background for headers)
-const BoldTemplate = ({ resumeData, accentColor }) => {
-    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
-    const accentBgClass = `bg-${accentColor}-600 text-white`; // Example: bg-blue-600
-
-    return (
-        <div className="p-8 font-sans text-gray-900">
-            {resumeData.personal.name && (
-                <div className={`py-4 px-6 mb-8 ${accentBgClass} text-center`}>
-                    <h1 className="text-5xl font-extrabold">{resumeData.personal.name}</h1>
-                    <p className="text-lg mt-2">{resumeData.personal.email} | {resumeData.personal.phone}</p>
-                </div>
-            )}
-            {resumeData.personal.summary && (
-                <div className="mb-6">
-                    <h2 className={`text-2xl font-bold py-2 px-4 mb-3 ${accentBgClass}`}>Summary</h2>
-                    <p className="text-base">{resumeData.personal.summary}</p>
-                </div>
-            )}
-            {resumeData.experience.some(exp => exp.title) && (
-                <div className="mb-6">
-                    <h2 className={`text-2xl font-bold py-2 px-4 mb-3 ${accentBgClass}`}>Experience</h2>
-                    {resumeData.experience.map((exp, index) => exp.title && (
-                        <div key={index} className="mb-4 pl-4 border-l-4 border-gray-300">
-                            <h3 className="font-bold text-lg">{exp.title} at {exp.company}</h3>
-                            <p className="text-sm text-gray-700 mb-1">{exp.dates}</p>
-                            <ul className="list-disc list-inside text-sm">
-                                {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
-                            </ul>
+            {resumeData.certifications.some(cert => cert.name) && (
+                <ResumeSectionDisplay title="Certifications" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.certifications.map((cert, index) => cert.name && (
+                        <div key={index} className="mb-2">
+                            <h4 className="font-semibold text-base">{cert.name}</h4>
+                            <p className="text-xs text-gray-700">{cert.issuer} - {cert.date}</p>
                         </div>
                     ))}
-                </div>
+                </ResumeSectionDisplay>
             )}
-            {resumeData.skills && (
-                <div className="mb-6">
-                    <h2 className={`text-2xl font-bold py-2 px-4 mb-3 ${accentBgClass}`}>Skills</h2>
-                    <p className="text-base">{resumeData.skills}</p>
-                </div>
+            {resumeData.awards.some(award => award.name) && (
+                <ResumeSectionDisplay title="Awards/Honors" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.awards.map((award, index) => award.name && (
+                        <div key={index} className="mb-2">
+                            <h4 className="font-semibold text-base">{award.name}</h4>
+                            <p className="text-xs text-gray-700">{award.date}</p>
+                            <p className="text-sm">{award.description}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
+            {resumeData.languages && (
+                <ResumeSectionDisplay title="Languages" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    <p className="text-sm">{resumeData.languages}</p>
+                </ResumeSectionDisplay>
             )}
         </div>
     );
 };
 
-// Template 9: Clean (Single-column, balanced spacing, simple fonts)
-const CleanTemplate = ({ resumeData, accentColor }) => {
+// Template 9: Simple Modern (Very clean, effective use of space, minimal styling)
+const SimpleModernTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
     return (
         <div className="p-8 font-sans text-gray-900">
             {resumeData.personal.name && (
-                <div className="text-center mb-8 pb-4 border-b border-gray-200">
-                    <h1 className={`text-4xl font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
-                    <p className="text-gray-700 text-sm mt-2">
-                        {resumeData.personal.email} | {resumeData.personal.phone} | {resumeData.personal.linkedin}
+                <div className="text-center mb-6 pb-4 border-b border-gray-200">
+                    <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                    <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                        {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                        {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
                     </p>
                 </div>
             )}
@@ -608,9 +823,11 @@ const CleanTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Experience" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.experience.map((exp, index) => exp.title && (
                         <div key={index} className="mb-4">
-                            <h4 className="font-semibold text-base">{exp.title}, {exp.company}</h4>
-                            <p className="text-xs text-gray-700 mb-1">{exp.dates}</p>
-                            <ul className="list-disc list-inside text-sm">
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{exp.title} at {exp.company}</h4>
+                                <p className="text-xs text-gray-700">{exp.dates}</p>
+                            </div>
+                            <ul className="list-disc list-inside text-sm mt-1">
                                 {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
                             </ul>
                         </div>
@@ -621,8 +838,10 @@ const CleanTemplate = ({ resumeData, accentColor }) => {
                 <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
                     {resumeData.education.map((edu, index) => edu.institution && (
                         <div key={index} className="mb-2">
-                            <h4 className="font-semibold text-base">{edu.degree}, {edu.institution}</h4>
-                            <p className="text-xs text-gray-700">{edu.dates}</p>
+                            <div className="flex justify-between items-baseline">
+                                <h4 className="font-semibold text-base">{edu.degree}, {edu.institution}</h4>
+                                <p className="text-xs text-gray-700">{edu.dates}</p>
+                            </div>
                         </div>
                     ))}
                 </ResumeSectionDisplay>
@@ -632,65 +851,97 @@ const CleanTemplate = ({ resumeData, accentColor }) => {
                     <p className="text-base">{resumeData.skills}</p>
                 </ResumeSectionDisplay>
             )}
+            {resumeData.projects.some(proj => proj.title) && (
+                <ResumeSectionDisplay title="Projects" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
+                    {resumeData.projects.map((proj, index) => proj.title && (
+                        <div key={index} className="mb-3">
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
+                            {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
+                            <p className="text-sm">{proj.description}</p>
+                        </div>
+                    ))}
+                </ResumeSectionDisplay>
+            )}
         </div>
     );
 };
 
-// Template 10: Executive (Two-column with top banner, professional fonts)
-const ExecutiveTemplate = ({ resumeData, accentColor }) => {
+
+// Template 10: Highlighted Sections (Similar to BoldAccent but with full section headers)
+const HighlightedSectionsTemplate = ({ resumeData, accentColor }) => {
     const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
+    const accentBgColorClass = `bg-${accentColor}-600`;
+    const nameFontSizeClass = getFontSizeForName(resumeData.personal.name);
+
     return (
-        <div className="p-8 font-serif text-gray-900">
+        <div className="p-8 font-sans text-gray-900">
             {resumeData.personal.name && (
-                <div className={`py-4 px-6 mb-8 text-center text-white ${accentColor === 'blue' ? 'bg-blue-800' : accentColor === 'purple' ? 'bg-purple-800' : 'bg-gray-800'}`}>
-                    <h1 className="text-4xl font-bold">{resumeData.personal.name}</h1>
-                    <p className="text-sm mt-2">{resumeData.personal.email} | {resumeData.personal.phone}</p>
+                <div className="text-center mb-8">
+                    <h1 className={`${nameFontSizeClass} font-bold ${nameColor}`}>{resumeData.personal.name}</h1>
+                    <p className="text-gray-700 text-sm mt-2 flex justify-center flex-wrap gap-x-3">
+                        {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                        {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                        {resumeData.personal.linkedin && <a href={resumeData.personal.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a>}
+                        {resumeData.personal.portfolio && <a href={resumeData.personal.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portfolio</a>}
+                    </p>
                 </div>
             )}
-            <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-2 pr-6 border-r border-gray-300">
-                    {resumeData.personal.summary && (
-                        <ResumeSectionDisplay title="Executive Summary" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                            <p className="text-sm">{resumeData.personal.summary}</p>
-                        </ResumeSectionDisplay>
-                    )}
-                    {resumeData.experience.some(exp => exp.title) && (
-                        <ResumeSectionDisplay title="Professional Experience" accentTextColorClass={textColor} accentBorderClass={borderColor}>
-                            {resumeData.experience.map((exp, index) => exp.title && (
-                                <div key={index} className="mb-4">
-                                    <h4 className="font-bold text-base">{exp.title} <span className="font-normal text-gray-700">| {exp.company}</span></h4>
-                                    <p className="text-xs text-gray-700 mb-1">{exp.dates}</p>
-                                    <ul className="list-disc list-inside text-sm">
-                                        {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
-                                    </ul>
-                                </div>
-                            ))}
-                        </ResumeSectionDisplay>
-                    )}
+            {resumeData.personal.summary && (
+                <div className="mb-6">
+                    <h2 className={`text-xl font-bold py-2 px-4 mb-3 text-white ${accentBgColorClass} rounded-md`}>Summary</h2>
+                    <p className="text-base">{resumeData.personal.summary}</p>
                 </div>
-                <div className="col-span-1 pl-6">
-                    {resumeData.education.some(edu => edu.institution) && (
-                        <ResumeSectionDisplay title="Education" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                            {resumeData.education.map((edu, index) => edu.institution && (
-                                <div key={index} className="mb-2">
-                                    <h4 className="font-semibold text-base">{edu.degree}, {edu.institution}</h4>
-                                    <p className="text-xs text-gray-700">{edu.dates}</p>
-                                </div>
-                            ))}
-                        </ResumeSectionDisplay>
-                    )}
-                    {resumeData.skills && (
-                        <ResumeSectionDisplay title="Key Skills" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                            <p className="text-sm">{resumeData.skills}</p>
-                        </ResumeSectionDisplay>
-                    )}
-                    {resumeData.languages && (
-                        <ResumeSectionDisplay title="Languages" accentTextColorClass={textColor} accentBorderColorClass={borderColor}>
-                            <p className="text-sm">{resumeData.languages}</p>
-                        </ResumeSectionDisplay>
-                    )}
+            )}
+            {resumeData.experience.some(exp => exp.title) && (
+                <div className="mb-6">
+                    <h2 className={`text-xl font-bold py-2 px-4 mb-3 text-white ${accentBgColorClass} rounded-md`}>Experience</h2>
+                    {resumeData.experience.map((exp, index) => exp.title && (
+                        <div key={index} className="mb-4">
+                            <div className="flex justify-between items-baseline">
+                                <h3 className="font-semibold text-base">{exp.title} at {exp.company}</h3>
+                                <p className="text-xs text-gray-700">{exp.dates}</p>
+                            </div>
+                            <ul className="list-disc list-inside text-sm mt-1">
+                                {exp.description.split('\n').filter(line => line.trim()).map((line, i) => <li key={i}>{line.trim()}</li>)}
+                            </ul>
+                        </div>
+                    ))}
                 </div>
-            </div>
+            )}
+            {resumeData.education.some(edu => edu.institution) && (
+                <div className="mb-6">
+                    <h2 className={`text-xl font-bold py-2 px-4 mb-3 text-white ${accentBgColorClass} rounded-md`}>Education</h2>
+                    {resumeData.education.map((edu, index) => edu.institution && (
+                        <div key={index} className="mb-3">
+                            <div className="flex justify-between items-baseline">
+                                <h3 className="font-semibold text-base">{edu.degree}</h3>
+                                <p className="text-xs text-gray-700">{edu.dates}</p>
+                            </div>
+                            <p className="text-sm text-gray-700">{edu.institution}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {resumeData.skills && (
+                <div className="mb-6">
+                    <h2 className={`text-xl font-bold py-2 px-4 mb-3 text-white ${accentBgColorClass} rounded-md`}>Skills</h2>
+                    <p className="text-base">{resumeData.skills}</p>
+                </div>
+            )}
+            {resumeData.projects.some(proj => proj.title) && (
+                <div className="mb-6">
+                    <h2 className={`text-xl font-bold py-2 px-4 mb-3 text-white ${accentBgColorClass} rounded-md`}>Projects</h2>
+                    {resumeData.projects.map((proj, index) => proj.title && (
+                        <div key={index} className="mb-3">
+                            <h4 className="font-semibold text-base">{proj.title}</h4>
+                            {proj.link && <p className="text-xs text-blue-600 hover:underline mb-1"><a href={proj.link} target="_blank" rel="noopener noreferrer">{proj.link}</a></p>}
+                            {proj.technologies && <p className="text-xs text-gray-700 italic mb-1">Technologies: {proj.technologies}</p>}
+                            <p className="text-sm">{proj.description}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -702,16 +953,16 @@ const ResumeDisplay = React.forwardRef(({ resumeData, settings }, ref) => {
 
     // Map template IDs to their components
     const TemplateComponent = {
-        'modern': ModernTemplate,
-        'classic': ClassicTemplate,
-        'professional': ProfessionalTemplate,
-        'creative': CreativeTemplate,
-        'elegant': ElegantTemplate,
-        'minimalist': MinimalistTemplate,
-        'corporate': CorporateTemplate,
-        'bold': BoldTemplate,
-        'clean': CleanTemplate,
-        'executive': ExecutiveTemplate,
+        'modern': ModernProfessionalTemplate,
+        'classic': ChronologicalTemplate,
+        'functional': FunctionalTemplate,
+        'elegant': MinimalistElegantTemplate,
+        'executive': ExecutiveTwoColumnTemplate,
+        'academic': AcademicTemplate,
+        'creative': CreativeModernTemplate,
+        'college': CollegeGraduateTemplate,
+        'minimalist': SimpleModernTemplate,
+        'professional': HighlightedSectionsTemplate,
     }[template];
 
     if (!TemplateComponent) {
@@ -719,7 +970,12 @@ const ResumeDisplay = React.forwardRef(({ resumeData, settings }, ref) => {
     }
 
     return (
-        <div ref={ref} className="border border-gray-300 rounded-lg shadow-md bg-white overflow-hidden">
+        // Added fixed width and height for 8.5x11 inches, plus overflow-hidden
+        <div
+            ref={ref}
+            className="border border-gray-300 rounded-lg shadow-md bg-white overflow-hidden w-[816px] h-[1056px] flex-shrink-0"
+            style={{ minWidth: '816px', minHeight: '1056px' }} // Ensures it doesn't shrink below size in flex containers
+        >
             <TemplateComponent resumeData={resumeData} accentColor={accentColor} />
         </div>
     );
@@ -730,6 +986,24 @@ const ResumeDisplay = React.forwardRef(({ resumeData, settings }, ref) => {
 const App = () => {
   // State to manage the current page view
   const [currentPage, setCurrentPage] = useState('home');
+
+  const [templateIdx, setTemplateIdx] = useState(0);
+  const [accentColor, setAccentColor] = useState('blue');
+  const pdfTemplates = [
+    TemplateOnePDF,
+    TemplateTwoPDF,
+    TemplateThreePDF,
+    TemplateFourPDF,
+    TemplateFivePDF,
+    TemplateSixPDF,
+    TemplateSevenPDF,
+    TemplateEightPDF,
+    TemplateNinePDF,
+    TemplateTenPDF
+  ];
+
+  const SelectedPdf = pdfTemplates[templateIdx];
+
   // State to hold resume data, shared across builder and customizer
   const [resumeData, setResumeData] = useState(() => {
     try {
@@ -845,8 +1119,8 @@ const App = () => {
       {/* Navigation Bar */}
       <nav className="relative z-10 p-4 bg-gray-800 bg-opacity-70 shadow-lg rounded-b-lg">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-            ResumePro+
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+            CareerPro+
           </h1>
           <div>
             <button
@@ -887,6 +1161,11 @@ const App = () => {
             onAddItem={handleAddItem}
             onRemoveItem={handleRemoveItem}
             onCustomize={() => setCurrentPage('customize')}
+            templateIdx={templateIdx}
+            setTemplateIdx={setTemplateIdx}
+            accentColor={accentColor}
+            setAccentColor={setAccentColor}
+            pdfTemplates={pdfTemplates}
           />
         )}
         {currentPage === 'customize' && (
@@ -978,7 +1257,7 @@ const HomePage = ({ onGetStarted }) => {
         <FeatureCard
           title="Customizable Templates"
           description="Choose from a variety of modern, professional templates to suit your style."
-          icon="✨"
+          icon="😍"
         />
         <FeatureCard
           title="Real-Time Preview"
@@ -988,7 +1267,7 @@ const HomePage = ({ onGetStarted }) => {
         <FeatureCard
           title="PDF Download"
           description="Instantly download your finished resume in a print-ready PDF format."
-          icon="📄"
+          icon="✨"
         />
       </div>
     </section>
@@ -1004,13 +1283,15 @@ const FeatureCard = ({ title, description, icon }) => (
   </div>
 );
 
-
-// Resume Builder Component
-const ResumeBuilder = ({ resumeData, onInputChange, onAddItem, onRemoveItem, onCustomize }) => {
+const ResumeBuilder = ({
+  resumeData, onInputChange, onAddItem, onRemoveItem, onCustomize,
+  templateIdx, setTemplateIdx, accentColor, setAccentColor, pdfTemplates
+}) => {
+  const SelectedPdf = pdfTemplates[templateIdx];
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       {/* Resume Input Form (Left Panel on Desktop) */}
-      <div className="lg:w-1/2 p-6 bg-gray-800 bg-opacity-70 rounded-xl shadow-2xl backdrop-blur-sm border border-gray-700">
+      <div className="w-[6.5in] p-6 bg-gray-800 bg-opacity-70 rounded-xl shadow-2xl backdrop-blur-sm border border-gray-700">
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6">
           Build Your Resume
         </h2>
@@ -1132,36 +1413,86 @@ const ResumeBuilder = ({ resumeData, onInputChange, onAddItem, onRemoveItem, onC
           <AddButton onClick={() => onAddItem('awards')} text="Add Award" />
         </Section>
 
-
-        {/* Customize Button - Replaces Download PDF */}
-        <div className="mt-8">
-          <button
-            onClick={onCustomize}
-            className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out"
-          >
-            Customize Your Resume
-          </button>
-        </div>
+        <button
+          onClick={onCustomize}
+          className="mt-8 w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out"
+        >
+          Customize Your Resume
+        </button>
       </div>
-
-      {/* Basic Resume Preview (Right Panel on Desktop) - This preview is without customization options */}
-      <div className="lg:w-1/2 p-4 bg-white rounded-xl shadow-2xl overflow-auto text-gray-900 border border-gray-200">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">Live Preview (Default)</h3>
-        {/* Render a default template for the builder page preview */}
-        <ResumeDisplay
-          resumeData={resumeData}
-          settings={{ template: 'modern', accentColor: 'blue' }}
-        />
+      {/* --- Right: PDF Preview & Download --- */}
+      <div className="h-[9.8in] flex-1 p-4 bg-black rounded-xl shadow-2xl overflow-auto border border-gray-300 min-w-[400px]">
+        <h3 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 text-center mb-6">Live Preview</h3>
+       <div className="flex gap-4 mb-6">
+          {/* Template Selection*/}
+          <div className="relative inline-block w-64 bg-gray-500 rounded-lg shadow-lg">
+            <select
+              value={templateIdx}
+              onChange={e => setTemplateIdx(Number(e.target.value))}
+              className="appearance-none w-full bg-black text-white px-4 py-3 rounded-b-lg border border-gray-500 focus:ring-2 focus:ring-blue-500 text-base"
+            >
+              {templateOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Accent Color Selection */}
+          <div className="relative inline-block w-60 bg-gray-300 rounded-lg shadow-lg">
+            <select
+              value={accentColor}
+              onChange={e => setAccentColor(e.target.value)}
+              className="appearance-none w-full bg-black text-white px-4 py-3 rounded-b-lg border border-gray-500 focus:ring-2 focus:ring-blue-500 text-base"
+            >
+              {accentOptions.map(c => (
+                <option key={c} value={c}>
+                  {c[0].toUpperCase() + c.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+       </div>
+        {/* PDF Preview */}
+        <div className="mb-4 border border-gray-900 rounded bg-white overflow-hidden" style={{ width: '100%', minHeight: 700 }}>
+          <PDFViewer width="100%" height={700}>
+            <SelectedPdf resumeData={resumeData} accentColor={accentColor} />
+          </PDFViewer>
+        </div>
+        {/* Download Button */}
+        <PDFDownloadLink
+          document={<SelectedPdf resumeData={resumeData} accentColor={accentColor} />}
+          fileName="resume.pdf"
+          className="block w-full py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold rounded-lg hover:scale-105 transition-transform text-center"
+        >
+          {({ loading }) => loading ? 'Preparing PDF...' : 'Download PDF'}
+        </PDFDownloadLink>
       </div>
     </div>
   );
 };
 
-
 // NEW: CustomizePage Component
 const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSettings }) => {
   const resumeRef = useRef(null); // Ref for the resume preview element
   const carouselRef = useRef(null); // Ref for scrolling the carousel
+
+  // ... inside CustomizePage function/component
+  const pdfTemplates = {
+    modern: TemplateOnePDF,
+    classic: TemplateTwoPDF,
+    functional: TemplateThreePDF,
+    elegant: TemplateFourPDF,
+    executive: TemplateFivePDF,
+    academic: TemplateSixPDF,
+    creative: TemplateSevenPDF,
+    college: TemplateEightPDF,
+    minimalist: TemplateNinePDF,
+    professional: TemplateTenPDF,
+  };
+
+  const SelectedPdf = pdfTemplates[customizationSettings.template];
+  const accentColor = customizationSettings.accentColor;
 
   // Handles changes to customization settings
   const handleSettingChange = useCallback((key, value) => {
@@ -1170,32 +1501,6 @@ const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSett
       [key]: value
     }));
   }, [setCustomizationSettings]);
-
-  // Function to download the resume as PDF
-  const downloadPdf = useCallback(() => {
-    const resumeElement = resumeRef.current;
-    if (resumeElement) {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js';
-      script.onload = () => {
-        window.html2pdf().from(resumeElement).save('my-custom-resume.pdf');
-      };
-      script.onerror = (e) => {
-        console.error("Failed to load html2pdf.js:", e);
-        const messageBox = document.createElement('div');
-        messageBox.className = 'fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50';
-        messageBox.innerHTML = `
-          <div class="bg-gray-800 p-6 rounded-lg shadow-xl text-center text-white border border-gray-700">
-            <p class="mb-4">Failed to load PDF generation library. Please try again.</p>
-            <button id="closeMessageBox" class="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700">OK</button>
-          </div>
-        `;
-        document.body.appendChild(messageBox);
-        document.getElementById('closeMessageBox').onclick = () => document.body.removeChild(messageBox);
-      };
-      document.body.appendChild(script);
-    }
-  }, []);
 
   // Function to scroll the carousel
   const scrollCarousel = useCallback((direction) => {
@@ -1222,86 +1527,129 @@ const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSett
     { id: 'amber', name: 'Amber', previewBg: 'bg-amber-500' },
   ];
 
+  // Updated templates array with new IDs and descriptions
   const templates = [
-    { id: 'modern', name: 'Modern', description: 'Clean and sleek, ideal for tech roles.' },
-    { id: 'classic', name: 'Classic', description: 'Two-column traditional look.' },
-    { id: 'professional', name: 'Professional', description: 'Single-column, formal fonts.' },
-    { id: 'creative', name: 'Creative', description: 'Asymmetrical, vibrant accents.' },
-    { id: 'elegant', name: 'Elegant', description: 'Ornate typography, centered headings.' },
-    { id: 'minimalist', name: 'Minimalist', description: 'Ultra-clean, max white space.' },
-    { id: 'corporate', name: 'Corporate', description: 'Two-column, formal, structured.' },
-    { id: 'bold', name: 'Bold', description: 'Large, bold fonts, accented headers.' },
-    { id: 'clean', name: 'Clean', description: 'Balanced spacing, simple fonts.' },
-    { id: 'executive', name: 'Executive', description: 'Two-column with top banner.' },
+    { id: 'modern', name: 'Modern Professional', description: 'Clean, balanced, single-column.' },
+    { id: 'classic', name: 'Chronological', description: 'Traditional with date emphasis.' },
+    { id: 'functional', name: 'Functional', description: 'Skills-focused with side contact.' },
+    { id: 'elegant', name: 'Minimalist Elegant', description: 'Clean lines, subtle accents.' },
+    { id: 'executive', name: 'Executive Two-Column', description: 'Formal, structured, distinct sections.' },
+    { id: 'academic', name: 'Academic', description: 'Detailed, suited for research/academia.' },
+    { id: 'creative', name: 'Creative Modern', description: 'Asymmetrical, visual appeal.' },
+    { id: 'college', name: 'College Graduate', description: 'Emphasizes education and projects.' },
+    { id: 'minimalist', name: 'Simple Modern', description: 'Very clean, effective use of space.' },
+    { id: 'professional', name: 'Highlighted Sections', description: 'Individual sections with highlighted headers.' },
   ];
 
-  // Simplified HTML snippets for carousel previews
+  // Simplified HTML snippets for carousel previews - UPDATED FOR NEW TEMPLATES
   const getTemplatePreviewHtml = (templateId, accentColor) => {
-    const { textColor, borderColor } = getAccentClasses(accentColor);
+    const { textColor, borderColor, nameColor } = getAccentClasses(accentColor);
     const commonClasses = 'text-xs leading-tight';
     const accentHeadingClass = `${textColor} font-semibold`;
     const accentBorderClass = `border-b ${borderColor}`;
+    const accentBgColorClass = `bg-${accentColor}-600`;
 
-    // Dummy data for preview rendering, just for structure
-    const previewData = {
-        name: "J. Doe", email: "j.doe@example.com", phone: "555-1234",
-        summary: "Dedicated professional with X years experience...",
-        skills: "React, JS, CSS, HTML",
-        experience: [{ title: "Role", company: "Comp", dates: "Y1-Y2" }],
-        education: [{ degree: "Deg", institution: "Uni", dates: "Y3-Y4" }],
-        projects: [{title: "Proj", description: "Desc"}],
-        certifications: [{name: "Cert"}], awards: [{name: "Award"}], languages: "Eng, Esp"
-    };
+    // Example names for preview to show dynamic sizing
+    const shortName = "J. Doe";
+    const longName = "Jonathan Alexander Longlastname";
+
+    let nameToUse = shortName;
+    let nameFontSizePreviewClass = getFontSizeForName(nameToUse);
+    let largeNameFontSizePreviewClass = getLargerFontSizeForName(nameToUse);
+
 
     switch (templateId) {
       case 'modern':
+        nameToUse = shortName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
         return `
             <div class="${commonClasses} p-2">
-                <div class="text-center"><h4 class="font-bold ${accentHeadingClass}">J. Doe</h4></div>
-                <p class="text-xs text-gray-500 text-center">Email | Phone</p>
+                <div class="text-center"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
+                <p class="text-xs text-gray-500 text-center">Contact Info</p>
                 <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Summ</h5></div>
                 <p class="text-xs">Summary overview...</p>
                 <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Exp</h5></div>
                 <p class="text-xs font-semibold">Role @ Comp</p>
-                <p class="text-xs">Desc line 1...</p>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
-                <p class="text-xs">React, JS, CSS...</p>
+                <ul class="list-disc list-inside text-xs"><li>Desc.</li></ul>
             </div>`;
-      case 'classic':
+      case 'classic': // Chronological
+        nameToUse = longName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
         return `
-            <div class="${commonClasses} p-2 grid grid-cols-2 gap-1">
-                <div class="col-span-2 text-center"><h4 class="font-bold ${accentHeadingClass}">J. Doe</h4></div>
+            <div class="${commonClasses} p-2">
+                <div class="text-center border-b pb-1 border-gray-300"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
+                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Exp</h5></div>
+                <div class="grid grid-cols-4"><p class="col-span-1 text-xs text-gray-700">Dates</p><div class="col-span-3"><p class="text-xs font-semibold">Role</p><p class="text-xs">Company</p></div></div>
+                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Edu</h5></div>
+                <div class="grid grid-cols-4"><p class="col-span-1 text-xs text-gray-700">Dates</p><div class="col-span-3"><p class="text-xs font-semibold">Degree</p></div></div>
+            </div>`;
+      case 'functional':
+        nameToUse = shortName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
+        return `
+            <div class="${commonClasses} p-2 grid grid-cols-4 gap-1">
                 <div class="col-span-1 pr-1 border-r border-gray-300">
-                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Sum</h5></div>
-                    <p class="text-xs">Summary...</p>
+                    <h4 class="text-sm font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4>
+                    <p class="text-xs text-gray-700 mt-2">Email</p>
                     <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
-                    <p class="text-xs">Skills list</p>
+                    <ul class="list-disc list-inside text-xs"><li>Skill 1</li></ul>
                 </div>
-                <div class="col-span-1 pl-1">
-                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Exp</h5></div>
-                    <p class="text-xs font-semibold">Role @ Comp</p>
-                    <p class="text-xs">Desc line...</p>
-                    <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Edu</h5></div>
-                    <p class="text-xs">Degree, Uni</p>
+                <div class="col-span-3 pl-1">
+                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Summ</h5></div>
+                    <p class="text-xs">Profile overview...</p>
+                    <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Exp</h5></div>
+                    <p class="text-xs font-semibold">Role, Company</p>
                 </div>
             </div>`;
-      case 'professional':
+      case 'elegant': // Minimalist Elegant
+        nameToUse = longName;
+        largeNameFontSizePreviewClass = getLargerFontSizeForName(nameToUse);
         return `
             <div class="${commonClasses} p-3">
-                <div class="text-center border-b border-gray-300 pb-1"><h4 class="font-bold ${accentHeadingClass}">J. Doe</h4></div>
+                <div class="text-center mb-2"><h4 class="${largeNameFontSizePreviewClass} font-light ${nameColor} tracking-wide">${nameToUse}</h4></div>
+                <div class="h-0.5 w-12 mx-auto mt-1 mb-1 ${borderColor}"></div>
                 <p class="text-xs text-gray-500 text-center">Contact Info</p>
                 <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Summary</h5></div>
-                <p class="text-xs">Professional overview...</p>
+                <p class="text-xs text-center">Elegant overview...</p>
                 <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
-                <p class="text-xs font-bold">Job Title, Company</p>
-                <ul class="list-disc list-inside text-xs"><li>Key acheivement</li></ul>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Education</h5></div>
-                <p class="text-xs">Degree, Institution</p>
+                <p class="text-xs font-semibold">Job Title, Company</p>
             </div>`;
-      case 'creative':
+      case 'executive': // Executive Two-Column
+        nameToUse = shortName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
         return `
             <div class="${commonClasses} p-2 grid grid-cols-3 gap-1">
-                <div class="col-span-3 text-center"><h4 class="text-sm font-extrabold ${accentHeadingClass}">J. Doe</h4></div>
+                <div class="col-span-3 text-center"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
+                <div class="col-span-1 pr-1 border-r border-gray-300">
+                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Profile</h5></div>
+                    <p class="text-xs">Summary...</p>
+                    <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
+                    <ul class="list-disc list-inside text-xs"><li>Skill</li></ul>
+                </div>
+                <div class="col-span-2 pl-1">
+                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
+                    <p class="text-xs font-semibold">Role | Company</p>
+                    <ul class="list-disc list-inside text-xs"><li>Key achievement</li></ul>
+                </div>
+            </div>`;
+      case 'academic':
+        nameToUse = shortName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
+        return `
+            <div class="${commonClasses} p-2">
+                <div class="text-center border-b pb-1 border-gray-300"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
+                <p class="text-xs text-gray-500 text-center">Contact Info</p>
+                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Edu</h5></div>
+                <p class="text-xs font-semibold">Degree</p><p class="text-xs">Institution, Dates</p>
+                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Research Exp</h5></div>
+                <p class="text-xs font-semibold">Role @ Org</p>
+            </div>`;
+      case 'creative': // Creative Modern
+        nameToUse = longName;
+        largeNameFontSizePreviewClass = getLargerFontSizeForName(nameToUse);
+        return `
+            <div class="${commonClasses} p-2 grid grid-cols-3 gap-1">
+                <div class="col-span-3 text-center"><h4 class="font-extrabold ${largeNameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
                 <div class="col-span-1 pr-1">
                     <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Sum</h5></div>
                     <p class="text-xs">Brief...</p>
@@ -1312,91 +1660,40 @@ const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSett
                     <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Exp</h5></div>
                     <p class="text-xs font-semibold">Role @ Comp</p>
                     <ul class="list-disc list-inside text-xs"><li>Desc.</li></ul>
-                    <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Proj</h5></div>
-                    <p class="text-xs font-semibold">Project Title</p>
                 </div>
             </div>`;
-      case 'elegant':
-        return `
-            <div class="${commonClasses} p-3">
-                <div class="text-center mb-2"><h4 class="text-sm font-light italic ${accentHeadingClass}">J. Doe</h4></div>
-                <div class="h-0.5 w-12 mx-auto mt-1 mb-1" style="background-color: ${getAccentClasses(accentColor).borderColor.split('-')[1]}"></div>
-                <p class="text-xs text-gray-500 text-center">Contact Info</p>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Summary</h5></div>
-                <p class="text-xs text-center italic">Elegant overview...</p>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
-                <p class="text-xs font-semibold">Job Title, Company</p>
-                <p class="text-xs">Description...</p>
-            </div>`;
-      case 'minimalist':
-        return `
-            <div class="${commonClasses} p-3 text-center">
-                <h4 class="font-bold text-sm ${accentHeadingClass}">J. Doe</h4>
-                <p class="text-xs text-gray-500">Email | Phone</p>
-                <p class="text-xs mt-2">Brief summary...</p>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
-                <p class="text-xs font-semibold">Role, Company (Dates)</p>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
-                <p class="text-xs">React, CSS, JS</p>
-            </div>`;
-      case 'corporate':
-        return `
-            <div class="${commonClasses} p-2 grid grid-cols-3 gap-1">
-                <div class="col-span-3 text-center"><h4 class="font-bold text-sm ${accentHeadingClass} uppercase">J. Doe</h4></div>
-                <div class="col-span-1 pr-1 border-r border-gray-300">
-                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Profile</h5></div>
-                    <p class="text-xs">Corporate profile...</p>
-                    <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
-                    <ul class="list-disc list-inside text-xs"><li>Competency</li></ul>
-                </div>
-                <div class="col-span-2 pl-1">
-                    <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
-                    <p class="text-xs font-semibold">Role | Company</p>
-                    <ul class="list-disc list-inside text-xs"><li>Key achievement</li></ul>
-                    <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Education</h5></div>
-                    <p class="text-xs">Degree, Institution</p>
-                </div>
-            </div>`;
-      case 'bold':
+      case 'college': // College Graduate
+        nameToUse = shortName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
         return `
             <div class="${commonClasses} p-2">
-                <div class="py-1 px-2 mb-2 ${getAccentClasses(accentColor).previewBg} text-white text-center"><h4 class="text-xl font-extrabold">J. DOE</h4></div>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="text-base font-bold ${getAccentClasses(accentColor).previewBg} text-white">Summary</h5></div>
-                <p class="text-xs">Bold summary...</p>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="text-base font-bold ${getAccentClasses(accentColor).previewBg} text-white">Experience</h5></div>
-                <p class="text-xs font-bold">Job Title @ Company</p>
-                <p class="text-xs">Description...</p>
+                <div class="text-center border-b pb-1 border-gray-200"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
+                <p class="text-xs text-gray-500 text-center">Contact Info</p>
+                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Edu</h5></div>
+                <p class="text-xs font-semibold">Degree, Uni (Dates)</p>
+                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Projects</h5></div>
+                <p class="text-xs font-semibold">Project Title</p>
             </div>`;
-      case 'clean':
+      case 'minimalist': // Simple Modern
+        nameToUse = longName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
         return `
             <div class="${commonClasses} p-3">
-                <div class="text-center border-b border-gray-200 pb-1"><h4 class="font-bold text-lg ${accentHeadingClass}">J. Doe</h4></div>
+                <div class="text-center border-b pb-1 border-gray-200"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
                 <p class="text-xs text-gray-500 text-center">Contact Info</p>
                 <div class="mt-3 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Summary</h5></div>
-                <p class="text-xs">Clean summary...</p>
-                <div class="mt-3 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
-                <p class="text-xs font-semibold">Role, Company</p>
-                <div class="mt-3 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
-                <p class="text-xs">Skill 1, Skill 2</p>
+                <p class="text-xs">Simple clean summary...</p>
             </div>`;
-      case 'executive':
+      case 'professional': // Highlighted Sections
+        nameToUse = shortName;
+        nameFontSizePreviewClass = getFontSizeForName(nameToUse);
         return `
-            <div class="${commonClasses} p-2">
-                <div class="py-1 px-2 mb-2 text-center text-white ${accentColor === 'blue' ? 'bg-blue-800' : 'bg-gray-800'}">
-                    <h4 class="text-lg font-bold">J. Doe</h4>
-                </div>
-                <div class="grid grid-cols-2 gap-1">
-                    <div class="pr-1 border-r border-gray-300">
-                        <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Summary</h5></div>
-                        <p class="text-xs">Executive overview...</p>
-                    </div>
-                    <div class="pl-1">
-                        <div class="pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Skills</h5></div>
-                        <p class="text-xs">Leadership, Strategy</p>
-                    </div>
-                </div>
-                <div class="mt-2 pb-1 ${accentBorderClass}"><h5 class="${accentHeadingClass}">Experience</h5></div>
-                <p class="text-xs font-bold">Exec Role, Org</p>
+            <div class="${commonClasses} p-3">
+                <div class="text-center mb-2"><h4 class="font-bold ${nameFontSizePreviewClass} ${nameColor}">${nameToUse}</h4></div>
+                <h5 class="text-base font-bold py-1 px-2 mb-1 text-white ${accentBgColorClass} rounded-md">Summary</h5>
+                <p class="text-xs">Executive overview...</p>
+                <h5 class="text-base font-bold py-1 px-2 mt-2 mb-1 text-white ${accentBgColorClass} rounded-md">Experience</h5>
+                <p class="text-xs">Role at Company</p>
             </div>`;
       default: return `<div class="text-center text-gray-500">Select a template</div>`;
     }
@@ -1422,7 +1719,7 @@ const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSett
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       {/* Customization Controls (Left Panel) */}
-      <div className="lg:w-1/2 p-6 bg-gray-800 bg-opacity-70 rounded-xl shadow-2xl backdrop-blur-sm border border-gray-700">
+      <div className="w-[6.5in] h-[8in] p-6 bg-gray-800 bg-opacity-70 rounded-xl shadow-2xl backdrop-blur-sm border border-gray-700">
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-500 mb-6">
           Customize Your Resume
         </h2>
@@ -1491,7 +1788,7 @@ const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSett
               <button
                 key={color.id}
                 onClick={() => handleSettingChange('accentColor', color.id)}
-                className={`w-12 h-12 rounded-full border-2 ${color.previewBg} ${
+                className={`w-10 h-10 rounded-full border-2 ${color.previewBg} ${
                   customizationSettings.accentColor === color.id
                     ? 'ring-4 ring-offset-2 ring-blue-500 ring-offset-gray-800'
                     : 'border-gray-600'
@@ -1511,23 +1808,26 @@ const CustomizePage = ({ resumeData, customizationSettings, setCustomizationSett
           >
             Reset to Default
           </button>
-          <button
-            onClick={downloadPdf}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out"
+          <PDFDownloadLink
+            document={<SelectedPdf resumeData={resumeData} accentColor={accentColor} />}
+            fileName="resume.pdf"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Download Resume as PDF
-          </button>
+            {({ loading }) =>
+              loading ? "Preparing PDF..." : "Download PDF"
+            }
+          </PDFDownloadLink>
         </div>
       </div>
 
       {/* Customized Resume Live Preview (Right Panel) */}
-      <div className="lg:w-1/2 p-4 bg-white rounded-xl shadow-2xl overflow-auto text-gray-900 border border-gray-200">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">Live Preview (Customized)</h3>
-        <ResumeDisplay
-          resumeData={resumeData}
-          settings={customizationSettings}
-          ref={resumeRef}
-        />
+      <div className="border rounded shadow overflow-hidden w-full h-[80vh]">
+        <PDFViewer width="100%" height="100%">
+          <SelectedPdf
+            resumeData={resumeData}
+            accentColor={accentColor}
+          />
+        </PDFViewer>
       </div>
     </div>
   );
